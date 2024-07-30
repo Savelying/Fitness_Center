@@ -11,12 +11,13 @@ public class Management {
 
 	private void printClubOptions() {
 		System.out.print("""
-				                 \nСписок клубов:
-				                 1) Клуб Меркурий
-				                 2) Клуб Нептун
-				                 3) Клуб Юпитер
-				                 4) Мультиклубный
-				                 Выберите нужный клуб:""" + " ");
+
+				Список клубов:
+				1) Клуб Меркурий
+				2) Клуб Нептун
+				3) Клуб Юпитер
+				4) Мультиклубный
+				Выберите нужный клуб:\s""");
 	}
 
 	private int getIntInput() {
@@ -40,13 +41,13 @@ public class Management {
 	public int getChoice() {
 
 		System.out.print("""
-				                 WELCOME TO OZONE FITNESS CENTER
-				                 ================================
-				                 Что хотим сделать?
-				                 1) Добавить члена
-				                 2) Удалить члена
-				                 3) Узнать данные члена
-				                 Выберите нужное действие (или введите "-1" для выхода):""" + " ");
+				WELCOME TO OZONE FITNESS CENTER
+				================================
+				Что хотим сделать?
+				1) Добавить члена
+				2) Удалить члена
+				3) Узнать данные члена
+				Выберите нужное действие (или введите "-1" для выхода):""" + " ");
 
 		return getIntInput();
 	}
@@ -130,7 +131,7 @@ public class Management {
 		int id = getIntInput();
 
 
-		try (Connection connection = DBConnector.getDbConnect(dbName);) {
+		try (Connection connection = DBConnector.getDbConnect(dbName)) {
 			PreparedStatement readStatement = connection.prepareStatement(readSql);
 
 			readStatement.setInt(1, id);
@@ -158,7 +159,7 @@ public class Management {
 		System.out.print("\nВведите номер члена:" + " ");
 		int id = getIntInput();
 
-		try (Connection connection = DBConnector.getDbConnect(dbName);) {
+		try (Connection connection = DBConnector.getDbConnect(dbName)) {
 			PreparedStatement statement = connection.prepareStatement(sql);
 
 			statement.setInt(1, id);

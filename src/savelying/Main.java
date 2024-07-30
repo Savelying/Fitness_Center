@@ -1,10 +1,7 @@
 package savelying;
 
-import java.io.IOException;
-import java.util.LinkedList;
-
 public class Main {
-	public static void main(String[] args) throws IOException {
+	public static void main(String[] args) {
 		String dbName = "Fitness_Center";
 		Management manage = new Management();
 
