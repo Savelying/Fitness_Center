@@ -45,8 +45,9 @@ public class Management {
 				================================
 				Что хотим сделать?
 				1) Добавить члена
-				2) Удалить члена
-				3) Узнать данные члена
+				2) Узнать данные члена
+				3) Списать бонусы члена
+				4) Удалить члена
 				Выберите нужное действие (или введите "-1" для выхода):""" + " ");
 
 		return getIntInput();
@@ -86,7 +87,6 @@ public class Management {
 			};
 			fees = calculator.calculateFees(clubId);
 			type = "single";
-//			System.out.println("\nЧлен отдельного клуба добавлен!\n");
 
 		} else {
 			calculator = (n) -> {
@@ -182,4 +182,46 @@ public class Management {
 			System.out.println(e.getMessage());
 		}
 	}
+
+	//Метод расчёта бонусов клиента
+	public void updateMemberPoints(String dbName) {
+		String readSQL = "select clubid, date, points from Members where id = ?";
+		String writeSQL = "update Members set points = ? where id = ?";
+
+		System.out.print("\nВведите номер члена: ");
+		int id = getIntInput();
+
+		try (Connection connection = DBConnector.getDbConnect(dbName)) {
+			PreparedStatement readStatement = connection.prepareStatement(readSQL);
+
+			readStatement.setInt(1, id);
+			ResultSet resultSet = readStatement.executeQuery();
+
+			if (resultSet.next()) {
+				if (resultSet.getInt("clubid") == 4) {
+					System.out.print("\nВведите количество списываемых бонусов: ");
+					int points = getIntInput();
+
+					LocalDate date = LocalDate.now();
+					Period period = Period.between(resultSet.getDate("date").toLocalDate(), date);
+					int updatePoints = resultSet.getInt("points") + points;
+
+					if (period.toTotalMonths() * 100 - updatePoints >= 0) {
+						PreparedStatement writeStatement = connection.prepareStatement(writeSQL);
+						writeStatement.setInt(1, updatePoints);
+						writeStatement.setInt(2, id);
+						writeStatement.executeUpdate();
+						System.out.println("\nС баланса члена №" + id + " списано " + points + " бонусов\n");
+
+					} else System.out.println("\nОШИБКА: Бонусов не достаточно!\n");
+
+				} else System.out.println("\nОШИБКА: Член не участвует в бонусной программе!\n");
+
+			} else System.out.println("\nОШИБКА: Члена с указанным номером нет в списках!\n");
+
+		} catch (SQLException | ClassNotFoundException e) {
+			System.out.println(e.getMessage());
+		}
+	}
+
 }
