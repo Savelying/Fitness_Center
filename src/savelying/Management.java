@@ -97,7 +97,6 @@ public class Management {
 			};
 			fees = calculator.calculateFees(clubId);
 			type = "multi";
-//			System.out.println("\nЧлен нескольких клубов добавлен!\n");
 		}
 
 		try (Connection connection = DBConnector.getServConnect()) {
