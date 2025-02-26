@@ -150,32 +150,76 @@ public class Management {
 
     //Метод удаления клиента
     public void removeMember(String dbName) {
-        String readSql = "select id from Members where id = ?";
+        String readSql = "select * from Members where id = ?";
         String delSql = "delete from Members where id = ?";
 
-        System.out.print("\nВведите номер члена:" + " ");
-        int id = getIntInput();
+        container.removeAll();
+        container.setLayout(new GridLayout(5, 1));
+
+        panel.removeAll();
+        panel.setLayout(new FlowLayout());
+
+        panel.add(new JLabel("Идентификационный номер:"));
+        JTextField idField = new JTextField("", 30);
+        panel.add(idField);
+        JButton buttonDel = new JButton("УДАЛИТЬ");
+        buttonDel.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                int id;
+                try {
+                    id = Integer.parseInt(idField.getText());
+
+                    try (Connection connection = DBConnector.getDbConnect(dbName)) {
+                        PreparedStatement readStatement = connection.prepareStatement(readSql);
+
+                        readStatement.setInt(1, id);
+                        ResultSet resultSet = readStatement.executeQuery();
+
+                        if (resultSet.next()) {
+                            int points;
+                            if (resultSet.getInt("clubid") == 0) {
+                                LocalDate date = LocalDate.now();
+                                Period period = Period.between(resultSet.getDate("date").toLocalDate(), date);
+                                points = (int) period.toTotalMonths() * 100 - resultSet.getInt("points");
+                            } else points = resultSet.getInt("points");
+
+                            if (JOptionPane.showOptionDialog(null, "Имя члена: " + resultSet.getString("name") + "\nТип членства: " + resultSet.getString("type") + "\nНомер клуба: " + resultSet.getInt("clubid") + "\nЧленский взнос: " + resultSet.getInt("fees") + "\nБонусные баллы: " + points + "\nВсё верно?\nУДАЛЯЕМ?!", "Удаление члена ID №" + resultSet.getInt("id"), JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE, null, new Object[]{"да", "нет"}, "нет") == 0) {
+                                PreparedStatement delStatement = connection.prepareStatement(delSql);
+                                delStatement.setInt(1, id);
+                                delStatement.executeUpdate();
+                                JOptionPane.showMessageDialog(null, "Член сети клубов ID №" + id + " удалён!", "Удаление члена ID №" + resultSet.getInt("id"), JOptionPane.INFORMATION_MESSAGE);
+                            }
+
+                        } else
+                            JOptionPane.showMessageDialog(null, "ОШИБКА: Члена с указанным номером нет в списках!", "Удаление члена ID №" + id, JOptionPane.ERROR_MESSAGE);
+
+                    } catch (SQLException | ClassNotFoundException f) {
+                        System.out.println(f.getMessage());
+                        JOptionPane.showMessageDialog(null, "ОШИБКА: Нет связи с базой данных!", "Удаление члена ID №" + id, JOptionPane.ERROR_MESSAGE);
+                    }
+                } catch (Exception m) {
+                    System.out.println(m.getMessage());
+                    JOptionPane.showMessageDialog(null, "ОШИБКА: Введено не числовое значение!", "Удаление члена ID №", JOptionPane.ERROR_MESSAGE);
+                }
+                ;
+            }
+        });
+
+        panel.add(buttonDel);
+        JButton buttonBack = new JButton("НАЗАД");
+        buttonBack.addActionListener(e -> getChoice());
+
+        container.add(new Item());
+        container.add(new JLabel("УДАЛЕНИЕ ЧЛЕНА №", SwingConstants.CENTER));
+        container.add(panel);
+        container.add(new JLabel("", SwingConstants.CENTER));
+        container.add(buttonBack);
 
 
-        try (Connection connection = DBConnector.getDbConnect(dbName)) {
-            PreparedStatement readStatement = connection.prepareStatement(readSql);
-
-            readStatement.setInt(1, id);
-            ResultSet resultSet = readStatement.executeQuery();
-            if (resultSet.next()) {
-                PreparedStatement delStatement = connection.prepareStatement(delSql);
-
-                delStatement.setInt(1, id);
-                delStatement.executeUpdate();
-
-                System.out.println("\nЧлен №" + resultSet.getInt("id") + " сети клубов удалён!\n");
-
-            } else System.out.println("\nОШИБКА: Члена с указанным номером нет в списках!\n");
-
-        } catch (SQLException | ClassNotFoundException e) {
-            System.out.println(e.getMessage());
-        }
-
+        frame.add(container);
+        frame.repaint();
+        frame.revalidate();
     }
 
     //Метод вывода данных клиента
@@ -190,7 +234,6 @@ public class Management {
 
         panel.add(new JLabel("Идентификационный номер:"));
         JTextField idField = new JTextField("", 30);
-        idField.setFocusCycleRoot(true);
         panel.add(idField);
         JButton buttonInfo = new JButton("ПОКАЗАТЬ");
         buttonInfo.addActionListener(new ActionListener() {
@@ -208,7 +251,6 @@ public class Management {
 
                         if (resultSet.next()) {
                             int points;
-
                             if (resultSet.getInt("clubid") == 0) {
                                 LocalDate date = LocalDate.now();
                                 Period period = Period.between(resultSet.getDate("date").toLocalDate(), date);
@@ -283,7 +325,6 @@ public class Management {
 
                         if (resultSet.next()) {
                             int points;
-
                             if (resultSet.getInt("clubid") == 0) {
                                 LocalDate date = LocalDate.now();
                                 Period period = Period.between(resultSet.getDate("date").toLocalDate(), date);
