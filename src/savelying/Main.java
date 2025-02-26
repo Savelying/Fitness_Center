@@ -7,6 +7,5 @@ public class Main {
 
 		manage.getChoice();
 
-//		System.out.println("\nДО СВИДАНИЯ!");
 	}
 }

@@ -7,44 +7,12 @@ import java.awt.event.ActionListener;
 import java.sql.*;
 import java.time.LocalDate;
 import java.time.Period;
-import java.util.InputMismatchException;
-import java.util.Scanner;
 
 public class Management {
-    final private Scanner reader = new Scanner(System.in);
     String dbName = "Fitness_Center";
     Frame frame = new Frame(600, 500);
     Container container = new Container();
     JPanel panel = new JPanel();
-
-    private void printClubOptions() {
-        System.out.print("""
-                
-                Список клубов:
-                0) Мультиклубный
-                1) Клуб Меркурий
-                2) Клуб Нептун
-                3) Клуб Юпитер
-                Выберите нужный клуб:\s""");
-    }
-
-    private int getIntInput() {
-        int choice = -5;
-
-        while (choice == -5) {
-            try {
-                choice = reader.nextInt();
-
-                if (choice == -5)
-                    throw new InputMismatchException();
-                reader.nextLine();
-
-            } catch (InputMismatchException e) {
-                System.out.print("\nОШИБКА: НЕПРАВИЛЬНЫЙ ВВОД. Попробуйте ещё раз:" + " ");
-            }
-        }
-        return choice;
-    }
 
     //Метод выбора действия
     public void getChoice() {
@@ -82,70 +50,107 @@ public class Management {
 
     //Метод добавления нового клиента
     public void addMember(String dbName) {
-        int fees;
-        int points = 0;
-        String name;
-        String type;
-        Calculator<Integer> calculator;
-        LocalDate date = LocalDate.now();
+
+        container.removeAll();
+        container.setLayout(new GridLayout(5, 1));
+        panel.removeAll();
+        panel.setLayout(new FlowLayout());
 
         //Присваиваем имя клиенту
-        System.out.print("\nВведите имя члена:" + " ");
-        name = reader.nextLine();
+        panel.add(new JLabel("Имя нового клиента:"));
+        JTextField nameField = new JTextField("", 30);
+        panel.add(nameField);
 
         //Присваиваем клуб клиенту
-        printClubOptions();
-        int clubId = getIntInput();
+        panel.add(new JLabel("Выберите желаемый клуб:"));
+        JComboBox<String> clubBox = new JComboBox<>();
+        clubBox.addItem("Мультиклуб");
+        clubBox.addItem("Меркурий");
+        clubBox.addItem("Венера");
+        clubBox.addItem("Марс");
+        panel.add(clubBox);
+//        panel.add(new JLabel("                                                                                        "));
 
-        while (clubId < 0 || clubId > 3) {
-            System.out.print("\nОШИБКА: НЕПРАВИЛЬНЫЙ ВВОД. Попробуйте ещё раз:" + " ");
-            clubId = getIntInput();
-        }
+        JButton buttonAdd = new JButton("ДОБАВИТЬ");
+        buttonAdd.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Calculator<Integer> calculator;
+                LocalDate date = LocalDate.now();
+                String name, clubName, type;
+                int fees, clubId, points = 0;
 
-        //Вносим клиента в список с соответствующим клубом и тарифом
-        if (clubId != 0) {
-            calculator = (n) -> {
-                return switch (n) {
-                    case 1 -> 900;
-                    case 2 -> 950;
-                    case 3 -> 1000;
-                    default -> -1;
-                };
-            };
-            fees = calculator.calculateFees(clubId);
-            type = "single";
+                name = nameField.getText();
+                clubName = (String) clubBox.getSelectedItem();
+                clubId = clubBox.getSelectedIndex();
+//                System.out.println(name + ": " + clubName + "(" + clubId + ")");
 
-        } else {
-            calculator = (n) -> {
-                return switch (n) {
-                    case 0 -> 1500;
-                    default -> -1;
-                };
-            };
-            fees = calculator.calculateFees(clubId);
-            type = "multi";
-        }
+                //Вносим клиента с соответствующим клубом и тарифом
+                if (clubId != 0) {
+                    calculator = (n) -> {
+                        return switch (n) {
+                            case 1 -> 900;
+                            case 2 -> 950;
+                            case 3 -> 1000;
+                            case 4 -> 1050;
+                            default -> 0;
+                        };
+                    };
+                    fees = calculator.calculateFees(clubId);
+                    type = "single";
+                } else {
+                    calculator = (n) -> {
+                        return switch (n) {
+                            case 0 -> 1500;
+                            default -> 0;
+                        };
+                    };
+                    fees = calculator.calculateFees(clubId);
+                    type = "multi";
+                }
+                //Добавляем нового клиента в БД
+                try (Connection connection = DBConnector.getServConnect()) {
+                    Statement statement = connection.createStatement();
 
-        try (Connection connection = DBConnector.getServConnect()) {
-            Statement statement = connection.createStatement();
+                    String dbNameSQL = "create database if not exists " + dbName;
+                    statement.executeUpdate(dbNameSQL);
 
-            String dbNameSQL = "create database if not exists " + dbName;
-            statement.executeUpdate(dbNameSQL);
+                    String dbUseSQL = "use " + dbName;
+                    statement.executeUpdate(dbUseSQL);
 
-            String dbUseSQL = "use " + dbName;
-            statement.executeUpdate(dbUseSQL);
+                    statement.executeUpdate("create table if not exists Members (id int not null auto_increment, name varchar(45), type varchar(6), clubname varchar(15), clubid int, fees int, date date, points int, primary key (id))");
+                    String sql = "insert into Members set name = '" + name + "', type = '" + type + "', clubname = '" + clubName + "', clubid = " + clubId + ", fees = " + fees + ", date = '" + date + "', points = " + points;
 
-            statement.executeUpdate("create table if not exists Members (id int not null auto_increment, name varchar(45), type varchar(6), clubid int, fees int, date date, points int, primary key (id))");
-            String sql = "insert into Members set name = '" + name + "', type = '" + type + "', clubid = " + clubId + ", fees = " + fees + ", date = '" + date + "', points = " + points;
-            statement.executeUpdate(sql);
+                    if (JOptionPane.showOptionDialog(null, "Имя члена: " + name + "\nКлуб: " + clubName + "(" + clubId + ")" + "\nЧленский взнос: " + fees + "\nБонусные баллы: " + points + "\nВсё верно?\nДОБАВЛЯЕМ?!", "Добавление нового члена сети клубов", JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE, null, new Object[]{"да", "нет"}, "нет") == 0)
+                        statement.executeUpdate(sql);
 
-            ResultSet resultSet = statement.executeQuery("select id, fees from Members order by id desc limit 1;");
-            if (resultSet.next())
-                System.out.println("\nЧлен сети клубов №" + resultSet.getInt("id") + " с взносом " + resultSet.getInt("fees") + "р. добавлен!\n");
+                    ResultSet resultSet = statement.executeQuery("select id, fees from Members order by id desc limit 1;");
+                    if (resultSet.next()) {
+                        JOptionPane.showMessageDialog(null, "Член сети клубов ID №" + resultSet.getInt("id") + " с взносом " + resultSet.getInt("fees") + "р. добавлен!", "Добавление нового члена сети клубов", JOptionPane.INFORMATION_MESSAGE);
+                        getChoice();
+                    }
 
-        } catch (SQLException | ClassNotFoundException e) {
-            System.out.println(e.getMessage());
-        }
+                } catch (SQLException | ClassNotFoundException f) {
+                    System.out.println(f.getMessage());
+                    JOptionPane.showMessageDialog(null, "ОШИБКА: Нет связи с базой данных!", "Добавление нового члена сети клубов", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+
+        panel.add(buttonAdd);
+        JButton buttonBack = new JButton("НАЗАД");
+        buttonBack.addActionListener(e -> getChoice());
+
+        container.add(new Item());
+        container.add(new JLabel("ДОБАВЛЕНИЕ НОВОГО ЧЛЕНА", SwingConstants.CENTER));
+        container.add(panel);
+        container.add(new JLabel("", SwingConstants.CENTER));
+        container.add(buttonBack);
+
+
+        frame.add(container);
+        frame.repaint();
+        frame.revalidate();
     }
 
     //Метод удаления клиента
@@ -155,7 +160,6 @@ public class Management {
 
         container.removeAll();
         container.setLayout(new GridLayout(5, 1));
-
         panel.removeAll();
         panel.setLayout(new FlowLayout());
 
@@ -184,11 +188,12 @@ public class Management {
                                 points = (int) period.toTotalMonths() * 100 - resultSet.getInt("points");
                             } else points = resultSet.getInt("points");
 
-                            if (JOptionPane.showOptionDialog(null, "Имя члена: " + resultSet.getString("name") + "\nТип членства: " + resultSet.getString("type") + "\nНомер клуба: " + resultSet.getInt("clubid") + "\nЧленский взнос: " + resultSet.getInt("fees") + "\nБонусные баллы: " + points + "\nВсё верно?\nУДАЛЯЕМ?!", "Удаление члена ID №" + resultSet.getInt("id"), JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE, null, new Object[]{"да", "нет"}, "нет") == 0) {
+                            if (JOptionPane.showOptionDialog(null, "Имя члена: " + resultSet.getString("name") + "\nКлуб: " + resultSet.getString("clubname") + "(" + resultSet.getInt("clubid") + ")" + "\nЧленский взнос: " + resultSet.getInt("fees") + "\nБонусные баллы: " + points + "\nВсё верно?\nУДАЛЯЕМ?!", "Удаление члена ID №" + resultSet.getInt("id"), JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE, null, new Object[]{"да", "нет"}, "нет") == 0) {
                                 PreparedStatement delStatement = connection.prepareStatement(delSql);
                                 delStatement.setInt(1, id);
                                 delStatement.executeUpdate();
-                                JOptionPane.showMessageDialog(null, "Член сети клубов ID №" + id + " удалён!", "Удаление члена ID №" + resultSet.getInt("id"), JOptionPane.INFORMATION_MESSAGE);
+                                JOptionPane.showMessageDialog(null, "Член сети клубов ID №" + resultSet.getInt("id") + " удалён!", "Удаление члена ID №" + resultSet.getInt("id"), JOptionPane.INFORMATION_MESSAGE);
+                                getChoice();
                             }
 
                         } else
@@ -228,7 +233,6 @@ public class Management {
 
         container.removeAll();
         container.setLayout(new GridLayout(5, 1));
-
         panel.removeAll();
         panel.setLayout(new FlowLayout());
 
@@ -257,7 +261,8 @@ public class Management {
                                 points = (int) period.toTotalMonths() * 100 - resultSet.getInt("points");
                             } else points = resultSet.getInt("points");
 
-                            JOptionPane.showMessageDialog(null, "Имя члена: " + resultSet.getString("name") + "\nТип членства: " + resultSet.getString("type") + "\nНомер клуба: " + resultSet.getInt("clubid") + "\nЧленский взнос: " + resultSet.getInt("fees") + "\nБонусные баллы: " + points, "Информация члена ID №" + resultSet.getInt("id"), JOptionPane.INFORMATION_MESSAGE);
+                            JOptionPane.showMessageDialog(null, "Имя члена: " + resultSet.getString("name") + "\nКлуб: " + resultSet.getString("clubname") + "(" + resultSet.getInt("clubid") + ")" + "\nЧленский взнос: " + resultSet.getInt("fees") + "\nБонусные баллы: " + points, "Информация члена ID №" + resultSet.getInt("id"), JOptionPane.INFORMATION_MESSAGE);
+                            getChoice();
 
                         } else
                             JOptionPane.showMessageDialog(null, "ОШИБКА: Члена с указанным номером нет в списках!", "Информация члена ID №" + id, JOptionPane.ERROR_MESSAGE);
@@ -298,7 +303,6 @@ public class Management {
 
         container.removeAll();
         container.setLayout(new GridLayout(5, 1));
-
         panel.removeAll();
         panel.setLayout(new FlowLayout());
 
@@ -331,7 +335,7 @@ public class Management {
                                 points = (int) period.toTotalMonths() * 100 - resultSet.getInt("points");
                                 int updatePoints = resultSet.getInt("points") + bonus;
 
-                                if (JOptionPane.showOptionDialog(null, "Имя члена: " + resultSet.getString("name") + "\nТип членства: " + resultSet.getString("type") + "\nНомер клуба: " + resultSet.getInt("clubid") + "\nЧленский взнос: " + resultSet.getInt("fees") + "\nБонусные баллы: " + points + "\nВсё верно?\nСПИСЫВАЕМ " + bonus + " БАЛЛОВ?!", "Информация члена ID №" + resultSet.getInt("id"), JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE, null, new Object[]{"да", "нет"}, "нет") == 0) {
+                                if (JOptionPane.showOptionDialog(null, "Имя члена: " + resultSet.getString("name") + "\nКлуб: " + resultSet.getString("clubname") + "(" + resultSet.getInt("clubid") + ")" + "\nЧленский взнос: " + resultSet.getInt("fees") + "\nБонусные баллы: " + points + "\nВсё верно?\nСПИСЫВАЕМ " + bonus + " БАЛЛОВ?!", "Информация члена ID №" + resultSet.getInt("id"), JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE, null, new Object[]{"да", "нет"}, "нет") == 0) {
 
                                     if (period.toTotalMonths() * 100 - updatePoints >= 0) {
                                         PreparedStatement writeStatement = connection.prepareStatement(writeSQL);
@@ -339,6 +343,7 @@ public class Management {
                                         writeStatement.setInt(2, id);
                                         writeStatement.executeUpdate();
                                         JOptionPane.showMessageDialog(null, "С баланса члена №" + id + " списано " + bonus + " баллов", "Списание бонусов члена ID №" + resultSet.getInt("id"), JOptionPane.INFORMATION_MESSAGE);
+                                        getChoice();
                                     } else
                                         JOptionPane.showMessageDialog(null, "ОШИБКА: Бонусных баллов недостаточно!", "Списание бонусов члена ID №" + resultSet.getInt("id"), JOptionPane.ERROR_MESSAGE);
                                 }

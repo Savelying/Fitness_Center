@@ -13,6 +13,7 @@ public class Frame extends JFrame {
     public Frame(int defaultWidth, int defaultHeight) throws HeadlessException {
         this.defaultWidth = defaultWidth;
         this.defaultHeight = defaultHeight;
+        setTitle("Сеть фитнес-клубов 'OZON'");
         setVisible(true);
         setResizable(false);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
