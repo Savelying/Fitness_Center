@@ -11,9 +11,9 @@ public class Item extends JComponent {
         g.drawImage(new ImageIcon("img's/WLive48x48.png").getImage(), 0, 0, null);
 
         g.setFont(new Font("Bitstream Charter", Font.BOLD, 20));
-        g.drawString("ФЦ 'СОЛНЕЧНЫЙ'", 600 / 2 - 90, 20);
+        g.drawString("ФЦ 'СОЛНЕЧНЫЙ'", Frame.defaultWidth/ 2 - 90, 20);
 
         g.setFont(new Font("Bitstream Charter", Font.BOLD, 14));
-        g.drawString("ДОБРО ПОЖАЛОВАТЬ!!!", 600 / 2 - 83, 40);
+        g.drawString("ДОБРО ПОЖАЛОВАТЬ!!!", Frame.defaultWidth / 2 - 80, 40);
     }
 }
