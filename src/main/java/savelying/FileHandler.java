@@ -1,5 +1,6 @@
 package savelying;
 
+import java.time.LocalDate;
 import java.util.LinkedList;
 import java.io.*;
 
@@ -17,11 +18,12 @@ public class FileHandler {
 			while (lineRead != null) {
 				splitLine = lineRead.split(", ");
 
-				if (splitLine[0].equals("S")) {
-					member = new Member_SClub('S', Integer.parseInt(splitLine[1]), splitLine[2], Double.parseDouble(splitLine[3]), Integer.parseInt(splitLine[4]));
-				} else {
-					member = new Member_SClub('M', Integer.parseInt(splitLine[1]), splitLine[2], Double.parseDouble(splitLine[3]), Integer.parseInt(splitLine[4]));
-				}
+//				if (splitLine[0].equals("S")) {
+					member = new Member(Integer.parseInt(splitLine[1]), splitLine[2], splitLine[3], Integer.parseInt(splitLine[4]), splitLine[5], Integer.parseInt(splitLine[6]), Integer.parseInt(splitLine[7]), LocalDate.parse(splitLine[8]));
+//				}
+//				else {
+//					member = new Member_SClub('M', Integer.parseInt(splitLine[1]), splitLine[2], Double.parseDouble(splitLine[3]), Integer.parseInt(splitLine[4]));
+//				}
 
 				members.add(member);
 				lineRead = reader.readLine();

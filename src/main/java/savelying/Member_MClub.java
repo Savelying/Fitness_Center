@@ -1,10 +1,12 @@
 package savelying;
 
+import java.time.LocalDate;
+
 public class Member_MClub extends Member {
 	private int points;
 
-	public Member_MClub(char type, int id, String name, double fees, int points) {
-		super(type, id, name, fees);
+	public Member_MClub(Integer id, String name, String type, Integer clubId, String clubName, Integer fees, Integer points, LocalDate date) {
+		super(id, name, type, clubId, clubName, fees, points, date);
 		this.points = points;
 	}
 

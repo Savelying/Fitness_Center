@@ -14,6 +14,7 @@ public class Management {
 
     //Метод выбора действия
     public void getChoice() {
+        //Очищаем рабочую панель окна приложения
         container.removeAll();
         container.setLayout(new GridLayout(5, 1));
         panel.removeAll();
@@ -50,8 +51,8 @@ public class Management {
 
     //Метод добавления нового клиента
     public void addMember() {
+        //Очищаем рабочую панель окна приложения
         container.removeAll();
-        container.setLayout(new GridLayout(5, 1));
         panel.removeAll();
         panel.setLayout(new FlowLayout());
 
@@ -72,9 +73,8 @@ public class Management {
         panel.add(buttonAdd);
         buttonAdd.addActionListener(_ -> {
             Calculator<Integer> calculator;
-            LocalDate date = LocalDate.now();
-            int fees, points = 0;
             String type;
+            int fees;
 
             String name = nameField.getText();
             String clubName = (String) clubBox.getSelectedItem();
@@ -109,17 +109,20 @@ public class Management {
                 String dbUseSQL = "use " + dbName;
                 statement.executeUpdate(dbUseSQL);
                 //Создаём таблицу в БД, если ещё нет
-                statement.executeUpdate("create table if not exists Members (id int not null auto_increment, name varchar(45), type varchar(6), clubname varchar(15), clubid int, fees int, date date, points int, primary key (id))");
+                statement.executeUpdate("create table if not exists Members (id int not null auto_increment, name varchar(45), type varchar(6), clubid int, clubname varchar(15), fees int, points int, date date, primary key (id))");
+                //Создаём объект класса члена
+                Member member = new Member(0, name, type, clubId, clubName, fees, 0, LocalDate.now());
                 //Выводим окно с информацией добавляемого члена для верификации
-                if (JOptionPane.showOptionDialog(null, "Имя члена: " + name + "\nКлуб: " + clubName + "(" + clubId + ")" + "\nЧленский взнос: " + fees + "\nБонусные баллы: " + points + "\nВсё верно?\nДОБАВЛЯЕМ?!", "Добавление нового члена сети клубов", JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE, null, new Object[]{"да", "нет"}, "нет") == 0) {
+                if (JOptionPane.showOptionDialog(null, member + "\nВсё верно?\nДОБАВЛЯЕМ?!", "Добавление нового члена сети клубов", JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE, null, new Object[]{"да", "нет"}, "нет") == 0) {
                     //Вносим данные Нового члена в БД
-                    String sql = "insert into Members set name = '" + name + "', type = '" + type + "', clubname = '" + clubName + "', clubid = " + clubId + ", fees = " + fees + ", date = '" + date + "', points = " + points;
-                    statement.executeUpdate(sql);
+                    String sqlAdd = "insert into Members set name = '" + member.getName() + "', type = '" + member.getType() + "', clubid = " + member.getClubId() + ", clubname = '" + member.getClubName() + "', fees = " + member.getFees() + ", points = " + member.getPoints() + ", date = '" + member.getDate() + "'";
+                    statement.executeUpdate(sqlAdd);
                 }
                 //Выводим окно с информацией вновь добавленного члена
                 ResultSet resultSet = statement.executeQuery("select id, fees from Members order by id desc limit 1;");
                 if (resultSet.next()) {
-                    JOptionPane.showMessageDialog(null, "Член сети клубов ID №" + resultSet.getInt("id") + " с взносом " + resultSet.getInt("fees") + "р. добавлен!", "Добавление нового члена сети клубов", JOptionPane.INFORMATION_MESSAGE);
+                    member.setId(resultSet.getInt("id"));
+                    JOptionPane.showMessageDialog(null, "Член сети клубов ID №" + member.getId() + " с взносом " + member.getFees() + "р. добавлен!", "Добавление нового члена сети клубов", JOptionPane.INFORMATION_MESSAGE);
                     getChoice();
                 }
 
@@ -146,8 +149,8 @@ public class Management {
 
     //Метод вывода данных клиента
     public void printMemberInfo() {
+        //Очищаем рабочую панель окна приложения
         container.removeAll();
-        container.setLayout(new GridLayout(5, 1));
         panel.removeAll();
         panel.setLayout(new FlowLayout());
 
@@ -159,9 +162,8 @@ public class Management {
         JButton buttonInfo = new JButton("ПОКАЗАТЬ");
         panel.add(buttonInfo);
         buttonInfo.addActionListener(_ -> {
-            int id;
             try {
-                id = Integer.parseInt(idField.getText());
+                int id = Integer.parseInt(idField.getText());
                 //Считываем данные интересующего члена из БД
                 try (Connection connection = DBConnector.getDbConnect(dbName)) {
                     String sql = "select * from Members where id = ?";
@@ -169,15 +171,10 @@ public class Management {
                     statement.setInt(1, id);
                     ResultSet resultSet = statement.executeQuery();
                     if (resultSet.next()) {
-                        int points;
-                        //Считаем количество доступных бонусов
-                        if (resultSet.getInt("clubid") == 0) {
-                            LocalDate date = LocalDate.now();
-                            Period period = Period.between(resultSet.getDate("date").toLocalDate(), date);
-                            points = (int) period.toTotalMonths() * 100 - resultSet.getInt("points");
-                        } else points = resultSet.getInt("points");
+                        //Создаём объект класса члена
+                        Member member = new Member(resultSet.getInt("id"), resultSet.getString("name"), resultSet.getString("type"), resultSet.getInt("clubid"), resultSet.getString("clubname"), resultSet.getInt("fees"), resultSet.getInt("points"), resultSet.getDate("date").toLocalDate());
                         //Выводим окно с информацией интересующего члена
-                        JOptionPane.showMessageDialog(null, "Имя члена: " + resultSet.getString("name") + "\nКлуб: " + resultSet.getString("clubname") + "(" + resultSet.getInt("clubid") + ")" + "\nЧленский взнос: " + resultSet.getInt("fees") + "\nБонусные баллы: " + points, "Информация члена ID №" + resultSet.getInt("id"), JOptionPane.INFORMATION_MESSAGE);
+                        JOptionPane.showMessageDialog(null, member, "Информация члена ID №" + member.getId(), JOptionPane.INFORMATION_MESSAGE);
                         getChoice();
                     } else
                         JOptionPane.showMessageDialog(null, "ОШИБКА: Члена с указанным номером нет в списках!", "Информация члена ID №" + id, JOptionPane.ERROR_MESSAGE);
@@ -209,8 +206,8 @@ public class Management {
 
     //Метод расчёта бонусов клиента
     public void updateMemberPoints() {
+        //Очищаем рабочую панель окна приложения
         container.removeAll();
-        container.setLayout(new GridLayout(5, 1));
         panel.removeAll();
         panel.setLayout(new FlowLayout());
 
@@ -225,10 +222,9 @@ public class Management {
         JButton buttonBonus = new JButton("СПИСАТЬ");
         panel.add(buttonBonus);
         buttonBonus.addActionListener(_ -> {
-            int id, bonus;
             try {
-                id = Integer.parseInt(idField.getText());
-                bonus = Integer.parseInt(bonusField.getText());
+                int id = Integer.parseInt(idField.getText());
+                int bonus = Integer.parseInt(bonusField.getText());
                 //Считываем данные искомого члена из БД
                 try (Connection connection = DBConnector.getDbConnect(dbName)) {
                     String readSQL = "select * from Members where id = ?";
@@ -236,30 +232,26 @@ public class Management {
                     readStatement.setInt(1, id);
                     ResultSet resultSet = readStatement.executeQuery();
                     if (resultSet.next()) {
-                        int points;
-                        //Считаем количество доступных бонусов
-                        if (resultSet.getInt("clubid") == 0) {
-                            LocalDate date = LocalDate.now();
-                            Period period = Period.between(resultSet.getDate("date").toLocalDate(), date);
-                            points = (int) period.toTotalMonths() * 100 - resultSet.getInt("points");
-                            int updatePoints = resultSet.getInt("points") + bonus;
+                        //Создаём объект класса члена
+                        Member member = new Member(resultSet.getInt("id"), resultSet.getString("name"), resultSet.getString("type"), resultSet.getInt("clubid"), resultSet.getString("clubname"), resultSet.getInt("fees"), resultSet.getInt("points"), resultSet.getDate("date").toLocalDate());
+                        if (member.getClubId() == 0) {
                             //Выводим окно с информацией интересующего члена для верификации
-                            if (JOptionPane.showOptionDialog(null, "Имя члена: " + resultSet.getString("name") + "\nКлуб: " + resultSet.getString("clubname") + "(" + resultSet.getInt("clubid") + ")" + "\nЧленский взнос: " + resultSet.getInt("fees") + "\nБонусные баллы: " + points + "\nВсё верно?\nСПИСЫВАЕМ " + bonus + " БАЛЛОВ?!", "Информация члена ID №" + resultSet.getInt("id"), JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE, null, new Object[]{"да", "нет"}, "нет") == 0) {
+                            if (JOptionPane.showOptionDialog(null, member + "\nВсё верно?\nСПИСЫВАЕМ " + bonus + " БАЛЛОВ?!", "Списание бонусов члена ID №" + member.getId(), JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE, null, new Object[]{"да", "нет"}, "нет") == 0) {
                                 //Вносим обновлённое количество списанных бонусных баллов члена в БД
-                                if (period.toTotalMonths() * 100 - updatePoints >= 0) {
+                                if (Period.between(member.getDate(), LocalDate.now()).toTotalMonths() * 100 >= member.getPoints() + bonus) {
                                     String writeSQL = "update Members set points = ? where id = ?";
                                     PreparedStatement writeStatement = connection.prepareStatement(writeSQL);
-                                    writeStatement.setInt(1, updatePoints);
-                                    writeStatement.setInt(2, id);
+                                    writeStatement.setInt(1, member.getPoints() + bonus);
+                                    writeStatement.setInt(2, member.getId());
                                     writeStatement.executeUpdate();
                                     //Выводим окно с информацией о списании бонусов члена
-                                    JOptionPane.showMessageDialog(null, "С баланса члена №" + id + " списано " + bonus + " баллов", "Списание бонусов члена ID №" + resultSet.getInt("id"), JOptionPane.INFORMATION_MESSAGE);
+                                    JOptionPane.showMessageDialog(null, "С баланса члена №" + member.getId() + " списано " + bonus + " баллов", "Списание бонусов члена ID №" + member.getId(), JOptionPane.INFORMATION_MESSAGE);
                                     getChoice();
                                 } else
-                                    JOptionPane.showMessageDialog(null, "ОШИБКА: Бонусных баллов недостаточно!", "Списание бонусов члена ID №" + resultSet.getInt("id"), JOptionPane.ERROR_MESSAGE);
+                                    JOptionPane.showMessageDialog(null, "ОШИБКА: Бонусных баллов недостаточно!", "Списание бонусов члена ID №" + member.getId(), JOptionPane.ERROR_MESSAGE);
                             }
                         } else
-                            JOptionPane.showMessageDialog(null, "ОШИБКА: Член не участвует в бонусной программе!", "Списание бонусов члена ID №" + resultSet.getInt("id"), JOptionPane.ERROR_MESSAGE);
+                            JOptionPane.showMessageDialog(null, "ОШИБКА: Член не участвует в бонусной программе!", "Списание бонусов члена ID №" + member.getId(), JOptionPane.ERROR_MESSAGE);
                     } else
                         JOptionPane.showMessageDialog(null, "ОШИБКА: Члена с указанным номером нет в списках!", "Списание бонусов члена ID №" + id, JOptionPane.ERROR_MESSAGE);
 
@@ -290,8 +282,8 @@ public class Management {
 
     //Метод удаления клиента
     public void removeMember() {
+        //Очищаем рабочую панель окна приложения
         container.removeAll();
-        container.setLayout(new GridLayout(5, 1));
         panel.removeAll();
         panel.setLayout(new FlowLayout());
 
@@ -303,33 +295,26 @@ public class Management {
         JButton buttonDel = new JButton("УДАЛИТЬ");
         panel.add(buttonDel);
         buttonDel.addActionListener(_ -> {
-            int id;
             try {
-                id = Integer.parseInt(idField.getText());
+                int id = Integer.parseInt(idField.getText());
                 //Считываем данные искомого члена из базы данных
                 try (Connection connection = DBConnector.getDbConnect(dbName)) {
                     String readSql = "select * from Members where id = ?";
                     PreparedStatement readStatement = connection.prepareStatement(readSql);
                     readStatement.setInt(1, id);
                     ResultSet resultSet = readStatement.executeQuery();
-
                     if (resultSet.next()) {
-                        int points;
-                        //Считаем количество доступных бонусов
-                        if (resultSet.getInt("clubid") == 0) {
-                            LocalDate date = LocalDate.now();
-                            Period period = Period.between(resultSet.getDate("date").toLocalDate(), date);
-                            points = (int) period.toTotalMonths() * 100 - resultSet.getInt("points");
-                        } else points = resultSet.getInt("points");
+                        //Создаём объект класса члена
+                        Member member = new Member(resultSet.getInt("id"), resultSet.getString("name"), resultSet.getString("type"), resultSet.getInt("clubid"), resultSet.getString("clubname"), resultSet.getInt("fees"), resultSet.getInt("points"), resultSet.getDate("date").toLocalDate());
                         //Выводим окно с информацией интересующего члена для верификации
-                        if (JOptionPane.showOptionDialog(null, "Имя члена: " + resultSet.getString("name") + "\nКлуб: " + resultSet.getString("clubname") + "(" + resultSet.getInt("clubid") + ")" + "\nЧленский взнос: " + resultSet.getInt("fees") + "\nБонусные баллы: " + points + "\nВсё верно?\nУДАЛЯЕМ?!", "Удаление члена ID №" + resultSet.getInt("id"), JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE, null, new Object[]{"да", "нет"}, "нет") == 0) {
+                        if (JOptionPane.showOptionDialog(null, member + "\nВсё верно?\nУДАЛЯЕМ?!", "Удаление члена ID №" + member.getId(), JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE, null, new Object[]{"да", "нет"}, "нет") == 0) {
                             //Удаляем члена из базы данных
                             String delSql = "delete from Members where id = ?";
                             PreparedStatement delStatement = connection.prepareStatement(delSql);
                             delStatement.setInt(1, id);
                             delStatement.executeUpdate();
                             //Выводим окно с информацией об удалении члена
-                            JOptionPane.showMessageDialog(null, "Член сети клубов ID №" + resultSet.getInt("id") + " удалён!", "Удаление члена ID №" + resultSet.getInt("id"), JOptionPane.INFORMATION_MESSAGE);
+                            JOptionPane.showMessageDialog(null, "Член сети клубов ID №" + member.getId() + " удалён!", "Удаление члена ID №" + member.getId(), JOptionPane.INFORMATION_MESSAGE);
                             getChoice();
                         }
                     } else
